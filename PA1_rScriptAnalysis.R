@@ -68,15 +68,14 @@ fitBitTblDF <- tbl_df(
         dayNum = yday(UTCdate),
         wDay = wday(UTCdate),
         hourDec = hour(UTCdate) + minute(UTCdate)/60 + second(UTCdate)/3600
-        #dayFactor = if wDay 
     ) %>%
     select(
         UTCdate, min, dayNum, wDay, hourDec, interval, steps
     )%>%
     filter(
-#         dayNum != 275 & dayNum != 335
-#         & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
-        steps != "NA"
+        dayNum != 275 & dayNum != 335
+        & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+        #         steps != "NA"
     )
 print(fitBitTblDF)
 ##
@@ -99,7 +98,7 @@ fitBitSummaryDayNum <-
 # Print result to console
 print(fitBitSummaryDayNum)
 
-## Six number summary
+## Six number summary by day
 
 summaryNumbersByDay <- summary(select(fitBitSummaryDayNum,cumDailySteps))
 medianDailySteps <- summaryNumbersByDay[3]
@@ -122,7 +121,7 @@ fitBitSummaryMin <-
 # Print result to console
 print(fitBitSummaryMin)
 
-## Six number summary
+## Six number summary by interval
 
 summaryNumbersByMin <- summary(select(fitBitSummaryMin,meanIntervalStepsbyInterval))
 medianDailyStepsByMin <- summaryNumbersByMin[3]
@@ -139,6 +138,99 @@ print(meanDailyStepsSDByMin)
 
 
 ## Imputing missing values
+## Generate the fitBit table data.frame again, but not filter out NA rows
+
+fitBitTblDFimput <- tbl_df(
+    read.csv2("activity.csv", sep = ",", stringsAsFactors = FALSE, na.strings = "NA",
+              header = TRUE, # colClasses = c("character", "numeric", "numeric")
+    )
+)  %>%
+    mutate(
+        min = formatC(interval, big.mark=":", big.interval=2, width=4, flag = "0"),
+        UTCdate = ymd( paste(date)) + hm(min),
+        dayNum = yday(UTCdate),
+        wDay = wday(UTCdate),
+        hourDec = hour(UTCdate) + minute(UTCdate)/60 + second(UTCdate)/3600
+    ) %>%
+    select(
+        UTCdate, dayNum, wDay, hourDec, steps
+    )
+## Generate a radomized step-count data
+randomized = vector("numeric", length = dim(fitBitTblDFimput)[1])
+scaleFactor = 0.65 # scaling factor to reduce upward bias of imputed data
+for (i in 1:dim(fitBitTblDFimput)[1]){
+    randomized[i] = max(0, scaleFactor * as.numeric(strsplit(meanDailyStepsByMin, ":")[[1]][2]) + 
+                            rnorm(1, mean = 0, sd=
+                                      as.numeric(strsplit(meanDailyStepsSDByMin, ":")[[1]][2])))
+}
+fitBitTblDFimput <- tbl_df(cbind(fitBitTblDFimput, randomized)) %>%
+    mutate(
+        dayFactor = ifelse(wDay %in% c(2, 3, 4, 5, 6), c("weekday"), c("weekend")),
+        stepsImput = ifelse(is.na(steps), randomized, steps),
+        dayFactor = as.factor(dayFactor)
+    ) %>%
+    select(
+        UTCdate, dayNum, wDay, hourDec, steps, randomized, stepsImput, dayFactor
+    )%>%
+    filter(
+        #         dayNum != 275 & dayNum != 335
+        #         & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+        #steps != "NA" 
+    )
+print(fitBitTblDFimput)
+
+## What is meant total number of steps taken per day for imputed data?
+fitBitSummaryDayNumImput <-
+    fitBitTblDFimput %>%
+    group_by(dayNum) %>%
+    summarize(
+        count = n(),
+        meanIntervalStepsImput = mean(stepsImput, na.rm = TRUE),
+        cumDailyStepsImput = sum(stepsImput, na.rm = TRUE)
+    ) %>%
+    arrange(dayNum)
+
+# Print result to console
+print(fitBitSummaryDayNum)
+
+## Six number summary by day for imputed data
+
+summaryNumbersByDayImput <- summary(select(fitBitSummaryDayNumImput,cumDailyStepsImput))
+medianDailyStepsImput <- summaryNumbersByDayImput[3]
+meanDailyStepsImput <- summaryNumbersByDayImput[4]
+print(medianDailyStepsImput)
+print(meanDailyStepsImput)
+
+## What is the average daily activity pattern with Imputed Data?
+fitBitSummaryMinImput <-
+    fitBitTblDFimput %>%
+    group_by(hourDec) %>%
+    summarize(
+        count = n(),
+        meanIntervalStepsbyIntervalImput = mean(stepsImput, na.rm = TRUE),
+        sdIntervalStepsbyIntervalImput =  sd(stepsImput, na.rm = TRUE)
+    ) %>%
+    arrange(hourDec)
+
+# Print result to console
+print(fitBitSummaryMinImput)
+
+## Six number summary by interval with Imputed Data
+
+summaryNumbersByMinImput <- summary(select(fitBitSummaryMinImput,meanIntervalStepsbyIntervalImput))
+medianDailyStepsByMinImput <- summaryNumbersByMinImput[3]
+meanDailyStepsByMinImput <- summaryNumbersByMinImput[4]
+print(medianDailyStepsByMinImput)
+print(meanDailyStepsByMinImput)
+
+summarySDnumbersByMinImput <- summary(select(fitBitSummaryMinImput,sdIntervalStepsbyIntervalImput))
+medianDailyStepsSDByMinImput <- summarySDnumbersByMinImput[3]
+meanDailyStepsSDByMinImput <- summarySDnumbersByMinImput[4]
+print(medianDailyStepsSDByMinImput)
+print(meanDailyStepsSDByMinImput)
+
+
+
 
 
 
@@ -147,29 +239,29 @@ print(meanDailyStepsSDByMin)
 
 
 ##
-# ################################################################################
-# ##
-# ## (4) Plot Data
-# ##
-# ##  Generate a scatterplot of Global Active Power vs Time
-# ##  (1) Title = "Activity:  Tracking Steps vs Time with Fit Bit"
-# ##  (2) ylabel = "Steps [#]"
-# ##  (3) xlabel = "Day" , "Steps [#]", or NONE
-# ##  (4) Save plot to a PNG file with width = 480 px and height = 480 px
-# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-# par(
-#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-# )
-# 
-# print(
-#     histogram(
-#         ~ cumDailySteps, data = fitBitSummaryDayNum, type = "count",
-#         main = "Activity:  Tracking Steps vs Time with Fit Bit",
-#         ylab="Days [#]", xlab = "Steps per Day [#]"
-#     )
-# )
+################################################################################
+##
+## (4) Plot Data
+##
+##  Generate a scatterplot of Global Active Power vs Time
+##  (1) Title = "Activity:  Tracking Steps vs Time with Fit Bit"
+##  (2) ylabel = "Steps [#]"
+##  (3) xlabel = "Day" , "Steps [#]", or NONE
+##  (4) Save plot to a PNG file with width = 480 px and height = 480 px
+windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    histogram(
+        ~ cumDailySteps, data = fitBitSummaryDayNum, type = "count",
+        main = "Activity:  Tracking Steps vs Time with Fit Bit",
+        ylab="Days [#]", xlab = "Steps per Day [#]"
+    )
+)
 # ##
 # ################################################################################
 # ##
@@ -205,39 +297,102 @@ print(meanDailyStepsSDByMin)
 #     )
 # )
 # ##
-# ################################################################################
-# ##
-# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-# par(
-#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-# )
-# 
-# print(
-#     xyplot(meanIntervalStepsbyInterval ~ hourDec, data = fitBitSummaryMin,
-#            type = "l", lty=1, col = "black",
-#            main = "Fit Bit Activity:  Representative Step-Count for a Day",
-#            ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
-#     )
-# )
-# windows(width=6.6667,height=6.6667)
-# dev.off() 
-# ##
-# ################################################################################
-# ##
-# # # png(
-# # #     filename = "PA1_Histogram.png",
-# # #     width = 480, height = 480
-# # # )
-# # # par(
-# # #     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-# # #     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-# # #     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-# # # )
-# # # 
-# # # plot(
-# # #     subTblDF[["UTCdate"]], subTblDF[["Global_active_power"]], type = "l", lty=1, col = "black",
-# # #     main = "Global Active Power", ylab="Global Active Power (kilowatts)", xlab = ""
-# # # )
-# # # dev.off()
+################################################################################
+##
+windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    xyplot(meanIntervalStepsbyInterval ~ hourDec, data = fitBitSummaryMin,
+           type = "l", lty=1, col = "black",
+           main = "Fit Bit Activity:  Representative Step-Count for a Day",
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
+    )
+)
+windows(width=6.6667,height=6.6667)
+dev.off() 
+##
+################################################################################
+##
+## (4b) Plot Imputed Data
+##
+##  Generate a scatterplot of Global Active Power vs Time
+##  (1) Title = "Activity:  Tracking Steps vs Time with Fit Bit"
+##  (2) ylabel = "Steps [#]"
+##  (3) xlabel = "Day" , "Steps [#]", or NONE
+##  (4) Save plot to a PNG file with width = 480 px and height = 480 px
+windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    histogram(
+        ~ cumDailyStepsImput, data = fitBitSummaryDayNumImput, type = "count",
+        main = "Activity:  Tracking Steps vs Time with Fit Bit (with Imputed Data)",
+        ylab="Days [#]", xlab = "Steps per Day [#]"
+    )
+)
+##
+################################################################################
+##
+windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    xyplot(meanIntervalStepsbyIntervalImput ~ hourDec, data = fitBitSummaryMinImput,
+           type = "l", lty=1, col = "black",
+           main = "Fit Bit Activity:  Representative Step-Count for a Day with Imputed Data",
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
+    )
+)
+windows(width=6.6667,height=6.6667)
+dev.off() 
+##
+################################################################################
+##
+windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+fitBitTblDFimput2=aggregate(stepsImput ~ hourDec + dayFactor,fitBitTblDFimput,mean)
+print(
+    xyplot(stepsImput ~ hourDec | factor(dayFactor), data = fitBitTblDFimput2,
+           type = "l", lty=1, col = "black",
+           main = "Fit Bit Activity:  Representative Step-Count for a Day with Imputed Data",
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]", aspect = 1/2
+    )
+)
+windows(width=6.6667,height=6.6667)
+dev.off() 
+##
+################################################################################
+##
+# # png(
+# #     filename = "PA1_Histogram.png",
+# #     width = 480, height = 480
+# # )
+# # par(
+# #     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+# #     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+# #     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# # )
+# # 
+# # plot(
+# #     subTblDF[["UTCdate"]], subTblDF[["Global_active_power"]], type = "l", lty=1, col = "black",
+# #     main = "Global Active Power", ylab="Global Active Power (kilowatts)", xlab = ""
+# # )
+# # dev.off()
