@@ -142,8 +142,8 @@ There are technical references that provide guidance for imputing missing values
 
 Missing data are replaced with the mean step-count by interval, but offset with a normal distribution with mean 0 and with standard deviation identical to that of the processed data set.  For example, given that the mean 5-min interval step-count is 40 steps with standard deviation 89 steps, a particular instance of missing data could be replaced by the value **`r max(0, 40 + rnorm(1, mean = 0, sd = 88))` steps**.  (By using the function *max(Random_Replacment, 0)*, the minimum replacement value is 0 whenever a random replacement would be negative.  Hence, a positive bias is retained.)  Alternatively, one could randomly select a replacement value from the set of 53 samples for each of the 288 intervals per day.  However, that exercise is left to the reader.
 
-The third figure shows a histogram of the dataset with missing values replaced.
-```{r histogramImpute, echo=FALSE, fig.align='center', message=FALSE}
+The following code block shows the method by which missing data are imputed.  A scale factor is introduced that controls the magnitude of imputed data:
+```{r fitBitImpute, echo=TRUE, fig.align='center', message=FALSE}
 fitBitTblDFimput <- tbl_df(
     read.csv2("activity.csv", sep = ",", stringsAsFactors = FALSE, na.strings = "NA",
               header = TRUE, # colClasses = c("character", "numeric", "numeric")
@@ -199,8 +199,10 @@ fitBitSummaryDayNumImput <-
 summaryNumbersByDayImput <- summary(select(fitBitSummaryDayNumImput,cumDailyStepsImput))
 medianDailyStepsImput <- summaryNumbersByDayImput[3]
 meanDailyStepsImput <- summaryNumbersByDayImput[4]
+```
 
-
+The third figure shows a histogram of the dataset with missing values replaced.
+```{r histogramImpute, echo=FALSE, fig.align='center', message=FALSE}
 windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
 par(
     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph

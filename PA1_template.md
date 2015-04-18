@@ -111,7 +111,7 @@ From the processed data, a Six Number Summary (*summary*) is generated that repo
 
 The Six Number summary is displayed using the R-package *xtable*:
 <!-- html table generated in R 3.1.2 by xtable 1.7-4 package -->
-<!-- Sat Apr 18 06:44:45 2015 -->
+<!-- Sat Apr 18 07:14:26 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> cumDailySteps </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> Min.   :   41   </td> </tr>
@@ -135,13 +135,80 @@ In total, there are 2,304 missing obersations during the sampling period of 61 d
 
 There are technical references that provide guidance for imputing missing values, e.g. [Missing-data imputation](http://www.stat.columbia.edu/~gelman/arm/missing.pdf).  For this exercise, a more pedestrian approach is used to impute missing data while reducing bias.
 
-Missing data are replaced with the mean step-count by interval, but offset with a normal distribution with mean 0 and with standard deviation identical to that of the processed data set.  For example, given that the mean 5-min interval step-count is 40 steps with standard deviation 89 steps, a particular instance of missing data could be replaced by the value **98.83806 steps**.  (By using the function *max(Random_Replacment, 0)*, the minimum replacement value is 0 whenever a random replacement would be negative.  Hence, a positive bias is retained.)  Alternatively, one could randomly select a replacement value from the set of 53 samples for each of the 288 intervals per day.  However, that exercise is left to the reader.
+Missing data are replaced with the mean step-count by interval, but offset with a normal distribution with mean 0 and with standard deviation identical to that of the processed data set.  For example, given that the mean 5-min interval step-count is 40 steps with standard deviation 89 steps, a particular instance of missing data could be replaced by the value **90.2268314 steps**.  (By using the function *max(Random_Replacment, 0)*, the minimum replacement value is 0 whenever a random replacement would be negative.  Hence, a positive bias is retained.)  Alternatively, one could randomly select a replacement value from the set of 53 samples for each of the 288 intervals per day.  However, that exercise is left to the reader.
+
+The following code block shows the method by which missing data are imputed.  A scale factor is introduced that controls the magnitude of imputed data:
+
+```r
+fitBitTblDFimput <- tbl_df(
+    read.csv2("activity.csv", sep = ",", stringsAsFactors = FALSE, na.strings = "NA",
+              header = TRUE, # colClasses = c("character", "numeric", "numeric")
+    )
+)  %>%
+    mutate(
+        min = formatC(interval, big.mark=":", big.interval=2, width=4, flag = "0"),
+        UTCdate = ymd( paste(date)) + hm(min),
+        dayNum = yday(UTCdate),
+        wDay = wday(UTCdate),
+        hourDec = hour(UTCdate) + minute(UTCdate)/60 + second(UTCdate)/3600
+    ) %>%
+    select(
+        UTCdate, dayNum, wDay, hourDec, steps
+    )
+## Generate a radomized step-count data
+randomized = vector("numeric", length = dim(fitBitTblDFimput)[1])
+scaleFactor = 0.65 # scaling factor to reduce upward bias of imputed data
+for (i in 1:dim(fitBitTblDFimput)[1]){
+    randomized[i] = max(0, scaleFactor * as.numeric(strsplit(meanDailyStepsByMin, ":")[[1]][2]) + 
+                            rnorm(1, mean = 0, sd=
+                                      as.numeric(strsplit(meanDailyStepsSDByMin, ":")[[1]][2])))
+}
+```
+
+```
+## Error in strsplit(meanDailyStepsByMin, ":"): object 'meanDailyStepsByMin' not found
+```
+
+```r
+fitBitTblDFimput <- tbl_df(cbind(fitBitTblDFimput, randomized)) %>%
+    mutate(
+        dayFactor = ifelse(wDay %in% c(2, 3, 4, 5, 6), c("weekday"), c("weekend")),
+        stepsImput = ifelse(is.na(steps), randomized, steps),
+        dayFactor = as.factor(dayFactor)
+    ) %>%
+    select(
+        UTCdate, dayNum, wDay, hourDec, steps, randomized, stepsImput, dayFactor
+    )%>%
+    filter(
+        #         dayNum != 275 & dayNum != 335
+        #         & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+        #steps != "NA" 
+    )
+#print(fitBitTblDFimput)
+
+## What is meant total number of steps taken per day for imputed data?
+fitBitSummaryDayNumImput <-
+    fitBitTblDFimput %>%
+    group_by(dayNum) %>%
+    summarize(
+        count = n(),
+        meanIntervalStepsImput = mean(stepsImput, na.rm = TRUE),
+        cumDailyStepsImput = sum(stepsImput, na.rm = TRUE)
+    ) %>%
+    arrange(dayNum)
+
+## Six number summary by day for imputed data
+
+summaryNumbersByDayImput <- summary(select(fitBitSummaryDayNumImput,cumDailyStepsImput))
+medianDailyStepsImput <- summaryNumbersByDayImput[3]
+meanDailyStepsImput <- summaryNumbersByDayImput[4]
+```
 
 The third figure shows a histogram of the dataset with missing values replaced.
 <img src="figure/histogramImpute-1.png" title="plot of chunk histogramImpute" alt="plot of chunk histogramImpute" style="display: block; margin: auto;" />
 Since positive bias is expected, a scale factor is introduced for moderating the positive bias.  Ultimately, the scale factor was set at 65%.  By inspection of the histogram shown in the third figure, the mean and median step-counts are about 12,000 steps.
 
-From a follow-on Six Number Summary, the mean number of daily steps is **Mean   :11251   steps**, and the median number of daily steps is **Median :11458   steps**.  The reported mean and median are consistent with the histogram of the third figure.
+From a follow-on Six Number Summary, the mean number of daily steps is **Mean   : 9354   steps**, and the median number of daily steps is **Median :10395   steps**.  The reported mean and median are consistent with the histogram of the third figure.
 
 The impact of imputing replacement data is an increase in the mean and median values of 6% from the original dataset.
 
