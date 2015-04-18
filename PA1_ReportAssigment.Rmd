@@ -6,39 +6,139 @@ output: html_document
 keep_md: true
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r}
-summary(cars)
-```
-
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
-
 ## Loading and preprocessing the data
-Data are obtained from: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+Annonymous personal data from a Fit Bit are analyzed with R.  During a 2-month sampling period, the number of steps taken during a 5-minute interval are recorded.  Experimental data are obtained from: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K].
+
+Date / time values are managed using the R-package *Lubridate* for which [Dates and Times Made Easy with lubridate](http://www.jstatsoft.org/v40/i03/paper) provides good description.  Data tables are manipulated using the R-package *dplyr* for which [Package 'dplyr'](http://cran.r-project.org/web/packages/dplyr/dplyr.pdf) provides description.
+
+The referenced libraries along with other necessary libraries are loaded into R-Studio with commands:
+```{r libraryImport, cache=FALSE, results='hide', cache=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(lubridate)
+library(lattice)
+library(xtable)
+```
+
+Subsequently, data are loaded and transformed from experimental data into analytic data using chained (%>%) commands:
+```{r dataLoad}
+fitBitTblDF <- tbl_df(
+    read.csv2("activity.csv", sep = ",", stringsAsFactors = FALSE, na.strings = "NA",
+              header = TRUE, # colClasses = c("character", "numeric", "numeric")
+    )
+)  %>%
+    mutate(
+        min = formatC(interval, big.mark=":", big.interval=2, width=4, flag = "0"),
+        UTCdate = ymd( paste(date)) + hm(min),
+        dayNum = yday(UTCdate),
+        wDay = wday(UTCdate),
+        hourDec = hour(UTCdate) + minute(UTCdate)/60 + second(UTCdate)/3600
+    ) %>%
+    select(
+        UTCdate, min, dayNum, wDay, hourDec, interval, steps
+    )%>%
+    filter(
+        dayNum != 275 & dayNum != 335
+        & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+    )
+```
+For this first order albeit iterated analysis, eight days for which there are no data (all entries = "NA") are excluded using the *filter* command. With *print* command, one reviews data before proceeding with statistical analyses:
+```{r dataPrint, echo=FALSE}
+print(fitBitTblDF)
+```
+
 
 
 
 ## What is mean total number of steps taken per day?
+Analytic data are processed using chained commands from the R-package *dplyr*:
+```{r daySummary}
+fitBitSummaryDayNum <-
+    fitBitTblDF %>%
+    group_by(dayNum) %>%
+    summarize(
+        count = n(),
+        meanIntervalSteps = mean(steps, na.rm = TRUE),
+        cumDailySteps = sum(steps, na.rm = TRUE)
+    ) %>%
+    filter(cumDailySteps != 0) %>%
+    arrange(dayNum)
+```
+A review of processed analytic data shows:
+```{r daySumOut, echo=FALSE}
+print(fitBitSummaryDayNum)
+```
+Aside: with the R-package *lubridate*, the UTC date is converted to show the number of day within the calendar year
+
+For each day of the sampling period, processed data lists the mean step-count for the 5-minute intervals by day.  (During a day, there are 288 5-minute intervals, so the processed data shows self-consistency.)  Processed data also show the cumulative number of steps taken each day.  NOTE:  missing data are excluded from the mean of interval step-count and cumulative daily step-count.
+
+From the processed data, the first figure shows a histogram of cumulative daily step-count during the 61-day sampling period from 2012 Oct 1 through 2012 Nov 30.  The *type* for this histogram is set to *count*, so the histogram is of frequency.  Therefore, the bins count the number of days with a particular step-count.  Recall, eight days are excluded from the histogram because no data are recorded.
+```{r histogram, echo=FALSE, fig.align='center'}
+fitBitSummaryMin <-
+    fitBitTblDF %>%
+    group_by(hourDec) %>%
+    summarize(
+        count = n(),
+        meanIntervalStepsbyInterval = mean(steps, na.rm = TRUE),
+        sdIntervalStepsbyInterval =  sd(steps, na.rm = TRUE)
+    ) %>%
+    filter(meanIntervalStepsbyInterval != 0) %>%
+    arrange(hourDec)
+
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    histogram(
+        ~ cumDailySteps, data = fitBitSummaryDayNum, type = "count",
+        main = "Activity:  Tracking Steps vs Time with Fit Bit",
+        ylab="Days [#]", xlab = "Steps per Day [#]"
+    )
+)
+```
 
 
+### Six Number Summary
+From the processed data, a Six Number Summary (*summary*) is generated that report min, max, quantiles, mean, and median characteristics.
+```{r sixSum, echo=FALSE}
+summaryNumbersByDay <- summary(select(fitBitSummaryDayNum,cumDailySteps))
+medianDailySteps <- summaryNumbersByDay[3]
+meanDailySteps <- summaryNumbersByDay[4]
+```
+The Six Number summary is displayed using the R-package *xtable*:
+```{r echo=F, showtable, results='asis'}
+xTbl <- xtable(summaryNumbersByDay)
+print(xTbl, type="html")
+```
+From the Six Number Summary, the mean number of daily steps is **`r meanDailySteps`steps**, and the median number of daily steps is **`r medianDailySteps` steps**.  The reported mean and median are consistent with the histogram.
 
 ## What is the average daily activity pattern?
+The second figure shows a representative plot of step-counts for a day during the sample period.
+```{r plotDay, echo=FALSE,cache=FALSE, fig.align='center'}
+par(
+    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+)
+
+print(
+    xyplot(meanIntervalStepsbyInterval ~ hourDec, data = fitBitSummaryMin,
+           type = "l", lty=1, col = "black",
+           main = "Fit Bit Activity:  Representative Step-Count for a Day",
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
+    )
+)
+```
+*Lubridate* is used to convert the UTCdate to decimal hours.  Analytic data are processed such that the plot shows the mean step-count for a given interval averaged across the 53-day data set from within the 61-day sampling period.
 
 
 
 ## Imputing missing values
+Recall, eight days for which no data are exluded from the analyses reported above.  Too, excluded are missing data from within a day for which valid step-count data exists. There are technical references that provide guidance for imputing missing values, e.g. [Missing-data imputation](http://www.stat.columbia.edu/~gelman/arm/missing.pdf).  For this exercise, a more pedestrian approach is used to impute missing data while reducing bias.
 
+Missing data are replaced with the mean interval step-count offset by a normal distribution with mean 0 and standard deviation identical to the processed data set.  For example, given that the mean 5-min interval step count is 40 steps with standard deviation 89 steps, a particular instance of missing data could be replaced by the value `r max(0, 40 + rnorm(1, mean = 0, sd = 88))` steps.  (The minimum replacement value is 0 whenever the random sample returns a negative step-count, so dome bias is retained.)  Alternatively, one could randomly select a replacement value from the set of 53 samples for each of the 288 intervals per day.  However, that exercise is left to the reader.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?

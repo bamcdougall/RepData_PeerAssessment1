@@ -1,2 +1,4 @@
 # No csv files
 *.csv
+*.Rdata
+*.Rhistory
