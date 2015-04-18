@@ -133,6 +133,37 @@ print(
 ```
 *Lubridate* is used to convert the UTCdate to decimal hours, which is the x-axis.  Analytic data are processed such that the plot shows mean step-count for a given interval averaged across the 53-day data set from within the 61-day sampling period.  The maximum number of step-count is 206 and occurs during the time interval 08:35.
 
+The following code chunk is reported for completeness and generates a Six Number Summary for the data aggregated for the second figure:
+```{r sixNumSummy4Day}
+fitBitSummaryMin <-
+    fitBitTblDF %>%
+    group_by(hourDec) %>%
+    summarize(
+        count = n(),
+        meanIntervalStepsbyInterval = mean(steps, na.rm = TRUE),
+        sdIntervalStepsbyInterval =  sd(steps, na.rm = TRUE)
+    ) %>%
+    filter(meanIntervalStepsbyInterval != 0) %>%
+    arrange(hourDec)
+
+# Print result to console
+print(fitBitSummaryMin)
+
+## Six number summary by interval
+
+summaryNumbersByMin <- summary(select(fitBitSummaryMin,meanIntervalStepsbyInterval))
+medianDailyStepsByMin <- summaryNumbersByMin[3]
+meanDailyStepsByMin <- summaryNumbersByMin[4]
+print(medianDailyStepsByMin)
+print(meanDailyStepsByMin)
+
+summarySDnumbersByMin <- summary(select(fitBitSummaryMin,sdIntervalStepsbyInterval))
+medianDailyStepsSDByMin <- summarySDnumbersByMin[3]
+meanDailyStepsSDByMin <- summarySDnumbersByMin[4]
+print(medianDailyStepsSDByMin)
+print(meanDailyStepsSDByMin)
+```
+While data from this code chunk is explicitly discussed, subsequent function calls require several of these variables.
 
 
 ## Imputing missing values
@@ -263,9 +294,9 @@ print(
     xyplot(stepsImput ~ hourDec | factor(dayFactor), data = fitBitTblDFimput2,
            type = "l", lty=1, col = "black",
            main = "Fit Bit Activity:  Representative Step-Count for a Day with Imputed Data",
-           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]", aspect = 1/2
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]", layout = c(1,2)
     )
 )
 ```
-Data plotted are from the imputed data set.  Given that the discussion is mostly qualitative, a 6% postive bias for using imputed data is acceptable.  Note the x-axis shows decimal hours instead of interval.  Clearly, the individual is *sleeping in* for a few hours during the weekend.  However, the most active part of the day is about 8:30AM.  With respect to the rest of the week, peak step-activity during the weekend is reduced by almost 50% from a week day.  *Bed time* remains consistent throughout the week and is about 9:30PM.
+Data plotted are from the imputed data set.  Given that the discussion is mostly qualitative, a 6% postive bias for using imputed data is acceptable.  Note the x-axis shows decimal hours instead of interval.  Clearly, the individual is *sleeping in* for a few hours during the weekend.  However, the most active part of the day througout the week is about 8:30AM.  With respect to the rest of the day (after 8:30AM), peak step-activity during the weekend is increased by almost 50% from a week day.  (Errands and chores anyone?.)  *Bed time* remains consistent throughout the week and is about 9:30PM.
 

@@ -373,7 +373,7 @@ print(
     xyplot(stepsImput ~ hourDec | factor(dayFactor), data = fitBitTblDFimput2,
            type = "l", lty=1, col = "black",
            main = "Fit Bit Activity:  Representative Step-Count for a Day with Imputed Data",
-           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]", aspect = 1/2
+           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]", layout = c(1,2)
     )
 )
 windows(width=6.6667,height=6.6667)
