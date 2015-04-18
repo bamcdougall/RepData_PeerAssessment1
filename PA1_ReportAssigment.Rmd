@@ -131,12 +131,14 @@ print(
     )
 )
 ```
-*Lubridate* is used to convert the UTCdate to decimal hours.  Analytic data are processed such that the plot shows the mean step-count for a given interval averaged across the 53-day data set from within the 61-day sampling period.
+*Lubridate* is used to convert the UTCdate to decimal hours.  Analytic data are processed such that the plot shows the mean step-count for a given interval averaged across the 53-day data set from within the 61-day sampling period.  The maximum number of step-count is 206 and occurs during the time interval 08:35.
 
 
 
 ## Imputing missing values
-Recall, eight days for which no data are exluded from the analyses reported above.  Too, excluded are missing data from within a day for which valid step-count data exists. There are technical references that provide guidance for imputing missing values, e.g. [Missing-data imputation](http://www.stat.columbia.edu/~gelman/arm/missing.pdf).  For this exercise, a more pedestrian approach is used to impute missing data while reducing bias.
+In total, there are 2,304 missing obersations during the sampling period of 61 days.  Recall, eight days for which no data are exluded from the analyses previously reported for a total of 2304 missing observations.  Hence, all the missing data are from this set of 8 days.  Recall, the analysis methodology excluded missing data from within a day for which valid step-count data exists. However, in retrospect, that generality was not needed.
+
+There are technical references that provide guidance for imputing missing values, e.g. [Missing-data imputation](http://www.stat.columbia.edu/~gelman/arm/missing.pdf).  For this exercise, a more pedestrian approach is used to impute missing data while reducing bias.
 
 Missing data are replaced with the mean interval step-count offset by a normal distribution with mean 0 and standard deviation identical to the processed data set.  For example, given that the mean 5-min interval step count is 40 steps with standard deviation 89 steps, a particular instance of missing data could be replaced by the value `r max(0, 40 + rnorm(1, mean = 0, sd = 88))` steps.  (The minimum replacement value is 0 whenever the random sample returns a negative step-count, so dome bias is retained.)  Alternatively, one could randomly select a replacement value from the set of 53 samples for each of the 288 intervals per day.  However, that exercise is left to the reader.
 

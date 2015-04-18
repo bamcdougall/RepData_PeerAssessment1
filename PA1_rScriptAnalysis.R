@@ -68,13 +68,15 @@ fitBitTblDF <- tbl_df(
         dayNum = yday(UTCdate),
         wDay = wday(UTCdate),
         hourDec = hour(UTCdate) + minute(UTCdate)/60 + second(UTCdate)/3600
+        #dayFactor = if wDay 
     ) %>%
     select(
         UTCdate, min, dayNum, wDay, hourDec, interval, steps
     )%>%
     filter(
-        dayNum != 275 & dayNum != 335
-        & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+#         dayNum != 275 & dayNum != 335
+#         & dayNum != 282 & dayNum != 306 & dayNum != 309 & dayNum != 314 & dayNum != 315 & dayNum != 319
+        steps != "NA"
     )
 print(fitBitTblDF)
 ##
@@ -145,97 +147,97 @@ print(meanDailyStepsSDByMin)
 
 
 ##
-################################################################################
-##
-## (4) Plot Data
-##
-##  Generate a scatterplot of Global Active Power vs Time
-##  (1) Title = "Activity:  Tracking Steps vs Time with Fit Bit"
-##  (2) ylabel = "Steps [#]"
-##  (3) xlabel = "Day" , "Steps [#]", or NONE
-##  (4) Save plot to a PNG file with width = 480 px and height = 480 px
-windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-par(
-    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-)
-
-print(
-    histogram(
-        ~ cumDailySteps, data = fitBitSummaryDayNum, type = "count",
-        main = "Activity:  Tracking Steps vs Time with Fit Bit",
-        ylab="Days [#]", xlab = "Steps per Day [#]"
-    )
-)
-##
-################################################################################
-##
-windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-par(    
-    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-)
-
-print(
-    xyplot(steps ~ UTCdate, data = fitBitTblDF,
-           type = "l", lty=1, col = "black",
-           main = "Activity:  Tracking Steps vs Time with Fit Bit",
-           ylab="Steps during 5 min Intervals [#]", xlab = "Time [UTC Date]"
-    )
-)
-##
-################################################################################
-##
-windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-par(
-    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-)
-
-print(
-    xyplot(cumDailySteps ~ dayNum, data = fitBitSummaryDayNum,
-           type = "l", lty=1, col = "black",
-           main = "Activity:  Tracking Steps vs Time with Fit Bit",
-           ylab="Cumulative Daily Steps [#]", xlab = "Time [UTC Day]"
-    )
-)
-##
-################################################################################
-##
-windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
-par(
-    mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-    mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-    oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-)
-
-print(
-    xyplot(meanIntervalStepsbyInterval ~ hourDec, data = fitBitSummaryMin,
-           type = "l", lty=1, col = "black",
-           main = "Fit Bit Activity:  Representative Step-Count for a Day",
-           ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
-    )
-)
-windows(width=6.6667,height=6.6667)
-dev.off() 
-##
-################################################################################
-##
-# # png(
-# #     filename = "PA1_Histogram.png",
-# #     width = 480, height = 480
-# # )
-# # par(
-# #     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
-# #     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
-# #     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
-# # )
-# # 
-# # plot(
-# #     subTblDF[["UTCdate"]], subTblDF[["Global_active_power"]], type = "l", lty=1, col = "black",
-# #     main = "Global Active Power", ylab="Global Active Power (kilowatts)", xlab = ""
-# # )
-# # dev.off()
+# ################################################################################
+# ##
+# ## (4) Plot Data
+# ##
+# ##  Generate a scatterplot of Global Active Power vs Time
+# ##  (1) Title = "Activity:  Tracking Steps vs Time with Fit Bit"
+# ##  (2) ylabel = "Steps [#]"
+# ##  (3) xlabel = "Day" , "Steps [#]", or NONE
+# ##  (4) Save plot to a PNG file with width = 480 px and height = 480 px
+# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+# par(
+#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# )
+# 
+# print(
+#     histogram(
+#         ~ cumDailySteps, data = fitBitSummaryDayNum, type = "count",
+#         main = "Activity:  Tracking Steps vs Time with Fit Bit",
+#         ylab="Days [#]", xlab = "Steps per Day [#]"
+#     )
+# )
+# ##
+# ################################################################################
+# ##
+# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+# par(    
+#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# )
+# 
+# print(
+#     xyplot(steps ~ UTCdate, data = fitBitTblDF,
+#            type = "l", lty=1, col = "black",
+#            main = "Activity:  Tracking Steps vs Time with Fit Bit",
+#            ylab="Steps during 5 min Intervals [#]", xlab = "Time [UTC Date]"
+#     )
+# )
+# ##
+# ################################################################################
+# ##
+# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+# par(
+#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# )
+# 
+# print(
+#     xyplot(cumDailySteps ~ dayNum, data = fitBitSummaryDayNum,
+#            type = "l", lty=1, col = "black",
+#            main = "Activity:  Tracking Steps vs Time with Fit Bit",
+#            ylab="Cumulative Daily Steps [#]", xlab = "Time [UTC Day]"
+#     )
+# )
+# ##
+# ################################################################################
+# ##
+# windows(width=6.6667,height=6.6667)   # in windows, sets screen display to 480pX480p
+# par(
+#     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+#     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+#     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# )
+# 
+# print(
+#     xyplot(meanIntervalStepsbyInterval ~ hourDec, data = fitBitSummaryMin,
+#            type = "l", lty=1, col = "black",
+#            main = "Fit Bit Activity:  Representative Step-Count for a Day",
+#            ylab="Mean Step Count in 5 Min Interval [#]", xlab = "Hour [#]"
+#     )
+# )
+# windows(width=6.6667,height=6.6667)
+# dev.off() 
+# ##
+# ################################################################################
+# ##
+# # # png(
+# # #     filename = "PA1_Histogram.png",
+# # #     width = 480, height = 480
+# # # )
+# # # par(
+# # #     mfrow = c(1, 1),        # explicitly set plot device to draw 1 graph
+# # #     mar = c(4, 4, 2, 1),    # explicitly set margins around plot to default class values
+# # #     oma = c(1, 1, 1, 1)     # explicitly set outer margin such that a line of text could be added
+# # # )
+# # # 
+# # # plot(
+# # #     subTblDF[["UTCdate"]], subTblDF[["Global_active_power"]], type = "l", lty=1, col = "black",
+# # #     main = "Global Active Power", ylab="Global Active Power (kilowatts)", xlab = ""
+# # # )
+# # # dev.off()
